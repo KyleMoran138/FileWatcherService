@@ -37,7 +37,6 @@ namespace FileWatcher
             _logger = logger;
 
             timeDelayInMilliseconds = fileWatcherOptions.Value.timeDelayInMilliseconds;
-            failCountBeforeEmail = fileWatcherOptions.Value.failCountBeforeEmail;
             emailTitle = fileWatcherOptions.Value.emailTitle;
             emailBody = fileWatcherOptions.Value.emailBody;
             emailsToNotify = fileWatcherOptions.Value.emailsToNotify;
@@ -61,12 +60,10 @@ namespace FileWatcher
                 SmtpServer.Credentials = new System.Net.NetworkCredential(smtpClientUsername, smtpClientPassword);
                 SmtpServer.EnableSsl = true;
             }
-
-            if(failCountBeforeEmail <= 0)
+            else
             {
-                failCountBeforeEmail = 10;
+                _logger.LogError("There's something wrong with your configuration settings.");
             }
-
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -74,6 +71,8 @@ namespace FileWatcher
             if (!allValuesAreValid) await this.StopAsync(stoppingToken);
             while (!stoppingToken.IsCancellationRequested)
             {
+                _logger.LogInformation("FileWatcher Worker running at: {time}", DateTimeOffset.Now);
+
                 if (bigException)
                 {
                     await this.StopAsync(stoppingToken);
@@ -81,19 +80,45 @@ namespace FileWatcher
                 string emailFailText = "";
                 foreach(var filePath in filesToCheck)
                 {
-                    if (!File.Exists(filePath))
+                    FileStream testWriteFile = null;
+
+                    if (!File.Exists(filePath) && !Directory.Exists(filePath))
                     {
-                        emailFailText += $"File does not exist at path {filePath}\n";
+                        emailFailText += $"File/Directory does not exist at path {filePath}\n";
                         continue;
                     }
-                    //if(File.)
+                    if (Directory.Exists(filePath)) continue;
+
+                    try
+                    {
+                        testWriteFile = File.OpenWrite(filePath);
+                    }
+                    catch (Exception e)
+                    {
+                        emailFailText += $"File(hopefully) is not writeable at path {filePath}";
+                    }
+                    finally
+                    {
+                        if (testWriteFile != null)
+                        {
+                            testWriteFile.Close();
+                        }
+                    }
                 }
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
+
+                if (emailFailText != "") SendFailEmail(emailFailText);
+                await Task.Delay(timeDelayInMilliseconds, stoppingToken);
             }
         }
 
-        protected void SendFailEmail()
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            SmtpServer.Dispose();
+            _logger.LogInformation("Stopping the FileWatcher service...");
+            return base.StopAsync(cancellationToken);
+        }
+
+        protected void SendFailEmail(string bodyAppendage = "")
         {
             try
             {
@@ -102,13 +127,14 @@ namespace FileWatcher
                 mail.From = new MailAddress(smtpClientUsername);
                 emailsToNotify.ForEach(emailToNotify => mail.To.Add(emailToNotify));
                 mail.Subject = emailTitle;
-                mail.Body = emailBody;
+                mail.Body = emailBody + "\n" + bodyAppendage;
 
                 SmtpServer.Send(mail);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error sending email {ex.Message}");
+                bigException = true;
             }
         }
     }
