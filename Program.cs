@@ -18,6 +18,8 @@ namespace FileWatcher
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
+                    services.Configure<FileWatcherOptions>(hostContext.Configuration.GetSection("fileWatcherOptions"));
+                    services.Configure<SmtpEmailClientOptions>(hostContext.Configuration.GetSection("smtpEmailClientOptions"));
                     services.AddHostedService<Worker>();
                 });
     }
