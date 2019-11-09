@@ -10,7 +10,7 @@ Here are the steps to set up this service:
   "fileWatcherOptions": {
     "timeDelayInMilliseconds": 60000, //  This is how frequently(in milliseconds) the service will scan the listed files default is one minute
     "emailTitle": "", //  The title/subject/topic of the email
-    "emailBody": "", //  The body of the email that desplays before the listed file errors
+    "emailBody": "", //  The body of the email that displays before the listed file errors
     "emailsToNotify": [ //  A list of emails to send the errors 
       "<emailOne>",
       "<emailTwo>"
@@ -20,7 +20,7 @@ Here are the steps to set up this service:
       "<AnotherFilePath>"
     ]
   },
-  "smtpEmailClientOptions": {
+  "smtpEmailClientOptions": { //  PLEASE DON'T USE YOUR PERSONAL EMAIL HERE. MAKE A SEPERATE EMAIL ACCOUNT FOR THIS SERVICE.
     "smtpClientUrl": "smtp.gmail.com", //  The address of your smtp email server
     "smtpClientPort": 587, //  The port for your smtp server. This is the default smtp port 
     "smtpClientEmail": "", //  The smtp user email address for authentication and for sent from address
@@ -28,7 +28,7 @@ Here are the steps to set up this service:
   }
   ```
   5. Open up an administrator powershell in the install directory and run the following commands
-    a. ```sc.exe create FileWatcherService binpath= C:\Program Files (x86)\FileWatcherService\FileWatcher.exe start= auto```(if you diddn't follow my install location recommendation you're on your own )
+    a. ```sc.exe create FileWatcherService binpath= C:\Program Files (x86)\FileWatcherService\FileWatcher.exe start= auto```(if you didn't follow my install location recommendation you're on your own )
   6. Open up the windows services tool and find the service called ```FileWatcherService``` and start it
   7. Now you should be able to find logs in ```C:\temp\fileTrackingWorkerService\Log.txt```
   
